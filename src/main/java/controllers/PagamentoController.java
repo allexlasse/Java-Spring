@@ -1,0 +1,44 @@
+package controllers;
+
+import java.util.concurrent.Callable;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import models.CarrinhoCompras;
+import models.DadosPagamento;
+
+@RequestMapping("/pagamento")
+@Controller
+public class PagamentoController {
+
+	@Autowired
+	private CarrinhoCompras carrinho;
+	@Autowired
+	private RestTemplate restTemplate;
+
+	@RequestMapping(value = "/finalizar", method = RequestMethod.POST)
+	public Callable<ModelAndView> finalizar(RedirectAttributes model) {
+		// classe anonima para o callabe - para requisições assíncronas
+		return () -> {
+			String uri = "http://book-payment.herokuapp.com/payment";
+			try {
+				String response = restTemplate.postForObject(uri, new DadosPagamento(carrinho.getTotal()),
+						String.class);
+				System.out.println(response);
+				model.addFlashAttribute("sucesso", response);
+			} catch (HttpClientErrorException e) {
+				e.printStackTrace();
+				model.addFlashAttribute("sucesso", "valor ,maior que o permitido");
+			}
+			return new ModelAndView("redirect:/products");
+		};
+
+	}
+}
